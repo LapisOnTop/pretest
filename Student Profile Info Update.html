@@ -334,9 +334,9 @@
         }
 
         .update-avatar-preview {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
+            width: 180px;
+            height: 180px;
+            border-radius: 12px;
             border: 3px solid #e5e7eb;
             overflow: hidden;
             background-color: #f3f4f6;
@@ -346,6 +346,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            object-position: 50% 20%;
         }
 
         /* Custom File Upload Styles */
@@ -794,36 +795,99 @@
                         // Image Background Validation (Check for White Background)
                         const img = new Image();
                         img.onload = function () {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                            const ctx = canvas.getContext('2d', { willReadFrequently: true });
-                            ctx.drawImage(img, 0, 0);
+                            const originalWidth = img.width;
+                            const originalHeight = img.height;
+                            const size = Math.min(originalWidth, originalHeight);
 
-                            // Sample corners and mid-edges
+                            let sx = 0;
+                            let sy = 0;
+
+                            if (originalWidth > originalHeight) {
+                                // Landscape: automatically bias crop toward the side
+                                // with more non-white pixels (likely where the person is).
+                                const analysisCanvas = document.createElement('canvas');
+                                analysisCanvas.width = originalWidth;
+                                analysisCanvas.height = originalHeight;
+                                const analysisCtx = analysisCanvas.getContext('2d', { willReadFrequently: true });
+                                analysisCtx.drawImage(img, 0, 0);
+
+                                function scoreStrip(startX, endX) {
+                                    let score = 0;
+                                    const samples = 20;
+                                    for (let i = 0; i < samples; i++) {
+                                        const x = Math.floor(startX + Math.random() * (endX - startX));
+                                        const y = Math.floor((originalHeight * 0.2) + Math.random() * (originalHeight * 0.6));
+                                        const data = analysisCtx.getImageData(x, y, 1, 1).data;
+                                        if (data[3] > 50) {
+                                            const brightness = (data[0] + data[1] + data[2]) / 3;
+                                            if (brightness < 240) score++;
+                                        }
+                                    }
+                                    return score;
+                                }
+
+                                const third = originalWidth / 3;
+                                const leftScore = scoreStrip(0, third);
+                                const centerScore = scoreStrip(third, 2 * third);
+                                const rightScore = scoreStrip(2 * third, originalWidth);
+
+                                let focusCenterX = originalWidth / 2;
+                                const maxScore = Math.max(leftScore, centerScore, rightScore);
+                                if (maxScore === leftScore) {
+                                    focusCenterX = originalWidth / 6;
+                                } else if (maxScore === rightScore) {
+                                    focusCenterX = originalWidth * 5 / 6;
+                                }
+
+                                sx = focusCenterX - size / 2;
+                                if (sx < 0) sx = 0;
+                                if (sx + size > originalWidth) sx = originalWidth - size;
+                                sy = 0;
+                            } else if (originalHeight > originalWidth) {
+                                // Portrait: bias crop slightly toward the top so the face stays visible
+                                const extra = originalHeight - size;
+                                sy = extra * 0.2;
+                                if (sy + size > originalHeight) {
+                                    sy = originalHeight - size;
+                                }
+                                sx = 0;
+                            }
+
+                            const canvas = document.createElement('canvas');
+                            canvas.width = size;
+                            canvas.height = size;
+                            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                            ctx.drawImage(img, sx, sy, size, size, 0, 0, size, size);
+
+                            // Sample corners and mid-edges on the cropped square
                             const pointsToCheck = [
                                 { x: 0, y: 0 },
-                                { x: img.width - 1, y: 0 },
-                                { x: 0, y: img.height - 1 },
-                                { x: img.width - 1, y: img.height - 1 },
-                                { x: Math.floor(img.width / 2), y: 0 },
-                                { x: 0, y: Math.floor(img.height / 2) }
+                                { x: canvas.width - 1, y: 0 },
+                                { x: 0, y: canvas.height - 1 },
+                                { x: canvas.width - 1, y: canvas.height - 1 },
+                                { x: Math.floor(canvas.width / 2), y: 0 },
+                                { x: 0, y: Math.floor(canvas.height / 2) }
                             ];
 
-                            let isWhiteBackground = true;
+                            let whiteCount = 0;
+                            let checked = 0;
                             for (let p of pointsToCheck) {
                                 const data = ctx.getImageData(p.x, p.y, 1, 1).data;
-                                // If pixel is visible (alpha > 50), it must be near-white (RGB > 240)
                                 if (data[3] > 50) {
-                                    if (data[0] < 235 || data[1] < 235 || data[2] < 235) {
-                                        isWhiteBackground = false;
-                                        break;
+                                    checked++;
+                                    const brightness = (data[0] + data[1] + data[2]) / 3;
+                                    if (brightness > 185) {
+                                        whiteCount++;
                                     }
                                 }
                             }
 
-                            if (!isWhiteBackground) {
-                                alert("Invalid Photo. Please make sure the uploaded photo has a white background before updating.");
+                            const whiteRatio = checked > 0 ? whiteCount / checked : 0;
+                            if (whiteRatio < 0.6) {
+                                showPhotoErrorPopup(
+                                    "Please make sure the uploaded photo has a mostly white or light background before updating.",
+                                    () => document.getElementById('photoInput') && document.getElementById('photoInput').click()
+                                );
                                 photoInput.value = "";
                                 base64Photo = currentStudent.photoUrl; // Revert to old valid photo
                                 if (currentStudent.photoUrl) {
@@ -833,8 +897,9 @@
                                 }
                                 checkChanges();
                             } else {
-                                base64Photo = tempBase64;
-                                previewImg.src = base64Photo;
+                                const processedBase64 = canvas.toDataURL('image/png');
+                                base64Photo = processedBase64;
+                                previewImg.src = processedBase64;
                                 checkChanges(); // Evaluate if save button should be enabled
                             }
                         };

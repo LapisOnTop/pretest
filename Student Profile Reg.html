@@ -672,7 +672,13 @@
 
             <div class="form-group">
                 <label class="form-label">Address <span style="color: #ef4444;">*</span></label>
-                <input type="text" class="form-input" id="address" required>
+                <div style="display: flex; gap: 10px; align-items: stretch;">
+                    <input type="text" class="form-input" id="address" required style="flex: 1;">
+                    <button type="button" class="btn btn-secondary" id="useLocationBtn"
+                        style="white-space: nowrap; padding-inline: 14px;">
+                        <i class="fa-solid fa-location-dot"></i> Use location
+                    </button>
+                </div>
             </div>
 
             <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 30px 0;">
@@ -802,6 +808,8 @@
             const previewImg = document.getElementById('previewImg');
             const uploadArea = document.getElementById('fileUploadArea');
             const uploadText = document.getElementById('uploadText');
+            const addressInput = document.getElementById('address');
+            const locationBtn = document.getElementById('useLocationBtn');
             let base64Photo = "";
 
             photoInput.addEventListener('change', function (e) {
@@ -1018,12 +1026,57 @@
             const birthdateInput = document.getElementById('birthdate');
             const admissionInput = document.getElementById('admissionDate');
             const todayStr = new Date().toISOString().split('T')[0];
+            const todayDate = new Date(todayStr);
             if (birthdateInput) {
                 birthdateInput.max = todayStr;
                 birthdateInput.min = '1900-01-01';
+                birthdateInput.addEventListener('change', () => {
+                    if (!birthdateInput.value) return;
+                    const d = new Date(birthdateInput.value);
+                    if (d > todayDate) birthdateInput.value = todayStr;
+                    if (d < new Date('1900-01-01')) birthdateInput.value = '1900-01-01';
+                });
             }
             if (admissionInput) {
                 admissionInput.max = todayStr;
+                admissionInput.addEventListener('change', () => {
+                    if (!admissionInput.value) return;
+                    const d = new Date(admissionInput.value);
+                    if (d > todayDate) admissionInput.value = todayStr;
+                });
+            }
+
+            // Browser location -> address helper
+            if (locationBtn && addressInput && 'geolocation' in navigator) {
+                locationBtn.addEventListener('click', () => {
+                    locationBtn.disabled = true;
+                    locationBtn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> Locating...';
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            const { latitude, longitude } = pos.coords;
+                            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`)
+                                .then(res => res.json())
+                                .then(data => {
+                                    const addr = data.display_name || '';
+                                    if (addr) {
+                                        addressInput.value = addr;
+                                    }
+                                })
+                                .catch(() => {
+                                    alert('Could not resolve your location into an address. Please type it manually.');
+                                })
+                                .finally(() => {
+                                    locationBtn.disabled = false;
+                                    locationBtn.innerHTML = '<i class="fa-solid fa-location-dot"></i> Use location';
+                                });
+                        },
+                        () => {
+                            alert('Location access was denied or failed. Please enable it in your browser.');
+                            locationBtn.disabled = false;
+                            locationBtn.innerHTML = '<i class="fa-solid fa-location-dot"></i> Use location';
+                        }
+                    );
+                });
             }
 
             // 2. Handle Form Submit for NEW student registration

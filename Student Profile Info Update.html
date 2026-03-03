@@ -602,7 +602,7 @@
                     <input type="text" class="form-input" id="address" required style="flex: 1;">
                     <button type="button" class="btn btn-secondary" id="useLocationBtn"
                         style="white-space: nowrap; padding-inline: 14px;">
-                        <i class="fa-solid fa-location-dot"></i> Use location
+                        <i class="fa-solid fa-map-location-dot"></i> Choose Location
                     </button>
                 </div>
             </div>
@@ -946,37 +946,18 @@
                 }
             });
 
-            // Location button (same behavior as registration page)
-            if (locationBtn && addressInput && 'geolocation' in navigator) {
+            // Location button map picker
+            if (locationBtn && addressInput) {
                 locationBtn.addEventListener('click', () => {
-                    locationBtn.disabled = true;
-                    locationBtn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> Locating...';
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => {
-                            const { latitude, longitude } = pos.coords;
-                            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`)
-                                .then(res => res.json())
-                                .then(data => {
-                                    const addr = data.display_name || '';
-                                    if (addr) {
-                                        addressInput.value = addr;
-                                        checkChanges();
-                                    }
-                                })
-                                .catch(() => {
-                                    alert('Could not resolve your location into an address. Please type it manually.');
-                                })
-                                .finally(() => {
-                                    locationBtn.disabled = false;
-                                    locationBtn.innerHTML = '<i class="fa-solid fa-location-dot"></i> Use location';
-                                });
-                        },
-                        () => {
-                            alert('Location access was denied or failed. Please enable it in your browser.');
-                            locationBtn.disabled = false;
-                            locationBtn.innerHTML = '<i class="fa-solid fa-location-dot"></i> Use location';
-                        }
-                    );
+                    if (typeof showMapLocationPicker === 'function') {
+                        showMapLocationPicker((address) => {
+                            addressInput.value = address;
+                            checkChanges();
+                            addressInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        });
+                    } else {
+                        showErrorPopup("Map Error", "Map feature is currently unavailable.", "fa-map");
+                    }
                 });
             }
 

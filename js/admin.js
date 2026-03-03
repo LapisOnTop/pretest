@@ -850,3 +850,168 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+function showMapLocationPicker(onLocationSelected) {
+    if (!document.getElementById('leaflet-css')) {
+        const link = document.createElement('link');
+        link.id = 'leaflet-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+    }
+    if (!document.getElementById('leaflet-js')) {
+        const script = document.createElement('script');
+        script.id = 'leaflet-js';
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => initMapModal(onLocationSelected);
+        document.head.appendChild(script);
+    } else {
+        initMapModal(onLocationSelected);
+    }
+}
+
+function initMapModal(onLocationSelected) {
+    const existing = document.getElementById('map-picker-modal');
+    if (existing) existing.remove();
+
+    const modalHTML = `
+        <div id="map-picker-modal" style="
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 12000;
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px); animation: fadeIn 0.2s;
+        ">
+            <div style="
+                background: white; border-radius: 12px; width: 90%; max-width: 600px;
+                display: flex; flex-direction: column; overflow: hidden;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: scaleIn 0.2s;
+            ">
+                <div style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; font-size: 1.1rem; color: #1f2937;">Choose Location on Map</h3>
+                    <button id="close-map-btn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6b7280; line-height: 1;">&times;</button>
+                </div>
+                <div style="padding: 10px 20px; background: #f9fafb; display: flex; gap: 10px; align-items: center;">
+                    <button id="map-current-loc-btn" class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 12px; border: 1px solid #d1d5db; background: white;">
+                        <i class="fa-solid fa-location-crosshairs"></i> Use My Current Location
+                    </button>
+                    <div id="map-status" style="font-size: 0.8rem; color: #6b7280;"></div>
+                </div>
+                <div id="map-container" style="height: 350px; width: 100%; position: relative;"></div>
+                <div style="padding: 16px 20px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #fff;">
+                    <div id="selected-address" style="font-size: 0.85rem; color: #4b5563; flex: 1; padding-right: 15px;
+                        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        Click on the map to select a location
+                    </div>
+                    <button id="confirm-map-btn" class="btn btn-primary" disabled style="opacity: 0.5; padding: 8px 16px; border: none; border-radius: 6px; background: #2563eb; color: white; cursor: not-allowed; font-weight: 500;">Confirm Address</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    const modal = document.getElementById('map-picker-modal');
+    const closeBtn = document.getElementById('close-map-btn');
+    const confirmBtn = document.getElementById('confirm-map-btn');
+    const currentLocBtn = document.getElementById('map-current-loc-btn');
+    const statusText = document.getElementById('map-status');
+    const addressText = document.getElementById('selected-address');
+
+    closeBtn.onclick = () => modal.remove();
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    const defaultCenter = [14.5995, 120.9842]; // Manila
+    const map = L.map('map-container').setView(defaultCenter, 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const iconDefault = L.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+    L.Marker.prototype.options.icon = iconDefault;
+
+    let currentMarker = null;
+    let selectedAddressStr = "";
+
+    function setMarkerPosition(lat, lng, address) {
+        if (currentMarker) map.removeLayer(currentMarker);
+        currentMarker = L.marker([lat, lng]).addTo(map);
+        map.setView([lat, lng], 16);
+        selectedAddressStr = address || "Fetching address...";
+        addressText.textContent = selectedAddressStr;
+
+        if (!address) {
+            confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.5';
+            confirmBtn.style.cursor = 'not-allowed';
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
+                .then(res => res.json())
+                .then(data => {
+                    selectedAddressStr = data.display_name || 'Unknown Location';
+                    addressText.textContent = selectedAddressStr;
+                    addressText.title = selectedAddressStr;
+                    confirmBtn.disabled = false;
+                    confirmBtn.style.opacity = '1';
+                    confirmBtn.style.cursor = 'pointer';
+                })
+                .catch(() => {
+                    selectedAddressStr = "Could not resolve address";
+                    addressText.textContent = selectedAddressStr;
+                });
+        } else {
+            confirmBtn.disabled = false;
+            confirmBtn.style.opacity = '1';
+            confirmBtn.style.cursor = 'pointer';
+            addressText.title = selectedAddressStr;
+        }
+    }
+
+    // Try to get current location automatically if available
+    if ('geolocation' in navigator) {
+        statusText.textContent = "Locating...";
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                statusText.textContent = "";
+                setMarkerPosition(pos.coords.latitude, pos.coords.longitude);
+            },
+            () => {
+                statusText.textContent = "";
+            },
+            { timeout: 5000 }
+        );
+    }
+
+    map.on('click', (e) => {
+        setMarkerPosition(e.latlng.lat, e.latlng.lng);
+    });
+
+    currentLocBtn.onclick = () => {
+        statusText.textContent = "Locating...";
+        currentLocBtn.disabled = true;
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                statusText.textContent = "";
+                currentLocBtn.disabled = false;
+                setMarkerPosition(pos.coords.latitude, pos.coords.longitude);
+            },
+            () => {
+                statusText.textContent = "Location access denied.";
+                currentLocBtn.disabled = false;
+            }
+        );
+    };
+
+    confirmBtn.onclick = () => {
+        if (selectedAddressStr && selectedAddressStr !== "Fetching address..." && selectedAddressStr !== "Could not resolve address") {
+            onLocationSelected(selectedAddressStr);
+            modal.remove();
+        }
+    };
+}

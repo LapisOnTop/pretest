@@ -992,15 +992,15 @@
                 const admissionDate = admissionInput.value ? new Date(admissionInput.value) : null;
 
                 if (birthDate && birthDate > today) {
-                    alert("Birthdate cannot be in the future.");
+                    showErrorPopup("Invalid Profile", "Birthdate cannot be in the future.");
                     return;
                 }
                 if (admissionDate && admissionDate > today) {
-                    alert("Admission date cannot be in the future.");
+                    showErrorPopup("Invalid Profile", "Admission date cannot be in the future.");
                     return;
                 }
                 if (birthDate && admissionDate && admissionDate <= birthDate) {
-                    alert("Admission date must be after the birthdate.");
+                    showErrorPopup("Invalid Profile", "Admission date must be after the birthdate.");
                     return;
                 }
 

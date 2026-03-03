@@ -1063,7 +1063,7 @@
                                     }
                                 })
                                 .catch(() => {
-                                    alert('Could not resolve your location into an address. Please type it manually.');
+                                    showErrorPopup("Location Error", "Could not resolve your location into an address. Please type it manually.", "fa-location-dot");
                                 })
                                 .finally(() => {
                                     locationBtn.disabled = false;
@@ -1071,7 +1071,7 @@
                                 });
                         },
                         () => {
-                            alert('Location access was denied or failed. Please enable it in your browser.');
+                            showErrorPopup("Location Error", "Location access was denied or failed. Please enable it in your browser.", "fa-location-dot");
                             locationBtn.disabled = false;
                             locationBtn.innerHTML = '<i class="fa-solid fa-location-dot"></i> Use location';
                         }
@@ -1085,11 +1085,11 @@
 
                 // Validation Checks
                 if (!base64Photo) {
-                    alert("Please upload a student photo. This is required for ID generation.");
+                    showErrorPopup("Invalid Profile", "Please upload a student photo. This is required for ID generation.");
                     return;
                 }
                 if (!signaturePresent) {
-                    alert("Please sign in the digital signature pad.");
+                    showErrorPopup("Invalid Profile", "Please sign in the digital signature pad.");
                     return;
                 }
 
@@ -1101,15 +1101,15 @@
                 const admissionDate = admissionVal ? new Date(admissionVal) : null;
 
                 if (birthDate && birthDate > today) {
-                    alert("Birthdate cannot be in the future.");
+                    showErrorPopup("Invalid Profile", "Birthdate cannot be in the future.");
                     return;
                 }
                 if (admissionDate && admissionDate > today) {
-                    alert("Admission date cannot be in the future.");
+                    showErrorPopup("Invalid Profile", "Admission date cannot be in the future.");
                     return;
                 }
                 if (birthDate && admissionDate && admissionDate <= birthDate) {
-                    alert("Admission date must be after the birthdate.");
+                    showErrorPopup("Invalid Profile", "Admission date must be after the birthdate.");
                     return;
                 }
 

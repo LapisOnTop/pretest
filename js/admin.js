@@ -345,6 +345,100 @@ function showSuccessPopup(message, callback) {
     };
 }
 
+function showErrorPopup(title, message, iconClass = "fa-circle-exclamation") {
+    const existing = document.getElementById('error-popup');
+    if (existing) existing.remove();
+
+    const popupHTML = `
+        <div id="error-popup" style="
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 11000;
+            animation: fadeIn 0.2s ease-out;
+            backdrop-filter: blur(4px);
+        ">
+            <div style="
+                background: #ffffff;
+                color: #1f2937;
+                padding: 24px 28px;
+                border-radius: 14px;
+                max-width: 420px;
+                width: 90%;
+                box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+                border: 1px solid #fecaca;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                animation: scaleIn 0.2s ease-out forwards;
+            ">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="
+                        width: 40px; height: 40px;
+                        border-radius: 999px;
+                        background: #fef2f2;
+                        border: 1px solid #fecaca;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: #dc2626;
+                        font-size: 1.2rem;
+                    ">
+                        <i class="fa-solid ${iconClass}"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: .08em; color: #b91c1c;">
+                            Validation Error
+                        </div>
+                        <div style="font-size: 1.05rem; font-weight: 600; color: #111827;">
+                            ${title}
+                        </div>
+                    </div>
+                </div>
+                <p style="margin: 0; font-size: 0.9rem; line-height: 1.5; color: #4b5563;">
+                    ${message}
+                </p>
+                <div style="margin-top: 8px; display: flex; justify-content: flex-end;">
+                    <button id="error-popup-ok" style="
+                        padding: 8px 16px;
+                        border-radius: 999px;
+                        border: 1px solid #2563eb;
+                        background: #2563eb;
+                        color: #ffffff;
+                        font-size: 0.85rem;
+                        font-weight: 500;
+                        cursor: pointer;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                        box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4);
+                    ">
+                        <span>Okay</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', popupHTML);
+
+    const root = document.getElementById('error-popup');
+    const okBtn = document.getElementById('error-popup-ok');
+    if (okBtn) {
+        okBtn.addEventListener('click', () => {
+            if (root) root.remove();
+        });
+    }
+    if (root) {
+        root.addEventListener('click', (e) => {
+            if (e.target === root) root.remove();
+        });
+    }
+}
+
 function showPhotoErrorPopup(message, onRetry) {
     const existing = document.getElementById('photo-error-popup');
     if (existing) existing.remove();

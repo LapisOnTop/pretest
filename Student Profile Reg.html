@@ -692,10 +692,7 @@
             <div class="form-group">
                 <label class="form-label">Year Level <span style="color: #ef4444;">*</span></label>
                 <select class="form-input" id="yearLevel">
-                    <option value="1st Year">1st Year</option>
-                    <option value="2nd Year">2nd Year</option>
-                    <option value="3rd Year">3rd Year</option>
-                    <option value="4th Year">4th Year</option>
+                    <option value="1st Year" selected>1st Year</option>
                 </select>
             </div>
 
@@ -1017,6 +1014,18 @@
                 signaturePresent = false;
             });
 
+            // Date constraints (basic sanity: no future dates)
+            const birthdateInput = document.getElementById('birthdate');
+            const admissionInput = document.getElementById('admissionDate');
+            const todayStr = new Date().toISOString().split('T')[0];
+            if (birthdateInput) {
+                birthdateInput.max = todayStr;
+                birthdateInput.min = '1900-01-01';
+            }
+            if (admissionInput) {
+                admissionInput.max = todayStr;
+            }
+
             // 2. Handle Form Submit for NEW student registration
             document.getElementById('registrationForm').addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -1028,6 +1037,26 @@
                 }
                 if (!signaturePresent) {
                     alert("Please sign in the digital signature pad.");
+                    return;
+                }
+
+                // Basic date validation
+                const birthVal = birthdateInput.value;
+                const admissionVal = admissionInput.value;
+                const today = new Date();
+                const birthDate = birthVal ? new Date(birthVal) : null;
+                const admissionDate = admissionVal ? new Date(admissionVal) : null;
+
+                if (birthDate && birthDate > today) {
+                    alert("Birthdate cannot be in the future.");
+                    return;
+                }
+                if (admissionDate && admissionDate > today) {
+                    alert("Admission date cannot be in the future.");
+                    return;
+                }
+                if (birthDate && admissionDate && admissionDate <= birthDate) {
+                    alert("Admission date must be after the birthdate.");
                     return;
                 }
 

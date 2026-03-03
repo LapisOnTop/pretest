@@ -618,10 +618,7 @@
             <div class="form-group">
                 <label class="form-label">Year Level <span style="color: #ef4444;">*</span></label>
                 <select class="form-input" id="yearLevel">
-                    <option value="1st Year">1st Year</option>
-                    <option value="2nd Year">2nd Year</option>
-                    <option value="3rd Year">3rd Year</option>
-                    <option value="4th Year">4th Year</option>
+                    <option value="1st Year" selected>1st Year</option>
                 </select>
             </div>
 
@@ -921,6 +918,26 @@
             document.getElementById('updateForm').addEventListener('submit', (e) => {
                 e.preventDefault();
 
+                // Basic date validation on update
+                const birthInput = document.getElementById('birthdate');
+                const admissionInput = document.getElementById('admissionDate');
+                const today = new Date();
+                const birthDate = birthInput.value ? new Date(birthInput.value) : null;
+                const admissionDate = admissionInput.value ? new Date(admissionInput.value) : null;
+
+                if (birthDate && birthDate > today) {
+                    alert("Birthdate cannot be in the future.");
+                    return;
+                }
+                if (admissionDate && admissionDate > today) {
+                    alert("Admission date cannot be in the future.");
+                    return;
+                }
+                if (birthDate && admissionDate && admissionDate <= birthDate) {
+                    alert("Admission date must be after the birthdate.");
+                    return;
+                }
+
                 const updatedData = {
                     fullName: document.getElementById('fullName').value,
                     birthdate: document.getElementById('birthdate').value,
@@ -928,7 +945,7 @@
                     email: document.getElementById('email').value,
                     address: document.getElementById('address').value,
                     program: document.getElementById('program').value,
-                    yearLevel: document.getElementById('yearLevel').value,
+                    yearLevel: '1st Year',
                     admissionDate: document.getElementById('admissionDate').value,
                     photoUrl: base64Photo,
                     idValidity: currentStudent.idValidity // Preserve permanent validity date

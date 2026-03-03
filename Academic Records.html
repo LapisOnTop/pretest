@@ -224,6 +224,21 @@
             margin-bottom: 10px;
         }
 
+        .student-extra-info {
+            margin-top: 6px;
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .student-extra-info span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
         .tags {
             display: flex;
             gap: 10px;
@@ -574,6 +589,11 @@
                         <span>•</span>
                         <span id="student-year">...</span>
                         <div class="status-tag"><i class="fa-solid fa-check"></i> Active</div>
+                    </div>
+                    <div class="student-extra-info">
+                        <span><i class="fa-regular fa-calendar"></i><span id="student-birthdate">Birthdate: -</span></span>
+                        <span><i class="fa-solid fa-phone"></i><span id="student-contact">Contact: -</span></span>
+                        <span><i class="fa-regular fa-envelope"></i><span id="student-email">Email: -</span></span>
                     </div>
                 </div>
             </div>
@@ -1211,8 +1231,25 @@
             document.getElementById('student-name').innerText = activeStudent.fullName || '...';
             document.getElementById('student-id').innerText = '#' + (activeStudent.id || '');
             document.getElementById('student-course').innerText = activeStudent.program || '...';
-            document.getElementById('student-year').innerText = activeStudent.yearLevel || '...';
+            document.getElementById('student-year').innerText = activeStudent.yearLevel || '1st Year';
             document.getElementById('student-photo').src = activeStudent.photoUrl || '';
+
+            const birthLabel = document.getElementById('student-birthdate');
+            const contactLabel = document.getElementById('student-contact');
+            const emailLabel = document.getElementById('student-email');
+
+            if (birthLabel) {
+                const raw = activeStudent.birthdate || '';
+                birthLabel.textContent = raw ? `Birthdate: ${raw}` : 'Birthdate: -';
+            }
+            if (contactLabel) {
+                const raw = activeStudent.contactNumber || '';
+                contactLabel.textContent = raw ? `Contact: ${raw}` : 'Contact: -';
+            }
+            if (emailLabel) {
+                const raw = activeStudent.email || '';
+                emailLabel.textContent = raw ? `Email: ${raw}` : 'Email: -';
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {

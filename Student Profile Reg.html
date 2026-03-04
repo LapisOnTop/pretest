@@ -928,7 +928,8 @@
                     max: 10,
                     placeholder: '9XXXXXXXXX',
                     normalizeNational: (nationalDigits) => {
-                        if (nationalDigits.startsWith('0')) return nationalDigits.slice(1);
+                        if (nationalDigits.startsWith('0')) nationalDigits = nationalDigits.slice(1);
+                        nationalDigits = nationalDigits.replace(/^[^9]+/, '');
                         return nationalDigits;
                     }
                 };
@@ -972,7 +973,7 @@
                 let national = digitsOnly(numberEl.value);
                 national = rules.normalizeNational(national);
 
-                if (national.length < rules.min || national.length > rules.max) {
+                if (national.length < rules.min || national.length > rules.max || !national.startsWith('9')) {
                     if (!opts.silent) {
                         showErrorPopup(
                             'Invalid Contact Number',

@@ -598,13 +598,7 @@
 
             <div class="form-group">
                 <label class="form-label">Address <span style="color: #ef4444;">*</span></label>
-                <div style="display: flex; gap: 10px; align-items: stretch;">
-                    <input type="text" class="form-input" id="address" required style="flex: 1;">
-                    <button type="button" class="btn btn-secondary" id="useLocationBtn"
-                        style="white-space: nowrap; padding-inline: 14px;">
-                        <i class="fa-solid fa-map-location-dot"></i> Choose Location
-                    </button>
-                </div>
+                <input type="text" class="form-input" id="address" required>
             </div>
 
             <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 30px 0;">
@@ -811,7 +805,6 @@
             // Photo Preview Logic
             const photoInput = document.getElementById('photoInput');
             const addressInput = document.getElementById('address');
-            const locationBtn = document.getElementById('useLocationBtn');
             let base64Photo = currentStudent.photoUrl;
 
             photoInput.addEventListener('change', function (e) {
@@ -946,20 +939,7 @@
                 }
             });
 
-            // Location button map picker
-            if (locationBtn && addressInput) {
-                locationBtn.addEventListener('click', () => {
-                    if (typeof showMapLocationPicker === 'function') {
-                        showMapLocationPicker((address) => {
-                            addressInput.value = address;
-                            checkChanges();
-                            addressInput.dispatchEvent(new Event('input', { bubbles: true }));
-                        });
-                    } else {
-                        showErrorPopup("Map Error", "Map feature is currently unavailable.", "fa-map");
-                    }
-                });
-            }
+
 
             // 3. Handle Form Submit
             document.getElementById('updateForm').addEventListener('submit', (e) => {

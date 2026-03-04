@@ -1069,11 +1069,10 @@
                         // Basic email check
                         isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
                     } else if (type === 'date') {
-                        // Realistic date check
+                        // Realistic birthdate check
                         const d = new Date(val);
                         const minDate = new Date('1900-01-01');
-                        const maxDate = new Date();
-                        isValid = !isNaN(d.getTime()) && d >= minDate && d <= maxDate;
+                        isValid = !isNaN(d.getTime()) && d >= minDate && d.getFullYear() < 2026;
                     }
                 }
 
@@ -1361,22 +1360,11 @@
             const todayStr = new Date().toISOString().split('T')[0];
             const todayDate = new Date(todayStr);
             if (birthdateInput) {
-                birthdateInput.max = todayStr;
+                birthdateInput.max = '2025-12-31';
                 birthdateInput.min = '1900-01-01';
-                birthdateInput.addEventListener('change', () => {
-                    if (!birthdateInput.value) return;
-                    const d = new Date(birthdateInput.value);
-                    if (d > todayDate) birthdateInput.value = todayStr;
-                    if (d < new Date('1900-01-01')) birthdateInput.value = '1900-01-01';
-                });
             }
             if (admissionInput) {
                 admissionInput.max = todayStr;
-                admissionInput.addEventListener('change', () => {
-                    if (!admissionInput.value) return;
-                    const d = new Date(admissionInput.value);
-                    if (d > todayDate) admissionInput.value = todayStr;
-                });
             }
 
 

@@ -810,11 +810,13 @@
                     <label class="form-label">Contact Number <span style="color: #ef4444;">*</span></label>
                     <div class="phone-input-wrapper">
                         <div class="phone-input-prefix">
-                            <div class="phone-country-trigger" id="phoneCountryTrigger">
+                            <!-- Flowbite-style country button -->
+                            <button id="dropdown-phone-button" type="button" class="phone-country-trigger">
                                 <span class="phone-country-code" id="phoneCountryLabel">PH</span>
                                 <span class="phone-country-dial" id="phoneDialLabel">+63</span>
                                 <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem; color: #9ca3af;"></i>
-                            </div>
+                            </button>
+                            <!-- Country dropdown with search -->
                             <div class="phone-country-panel" id="phoneCountryPanel">
                                 <div class="phone-country-search">
                                     <i class="fa-solid fa-magnifying-glass"
@@ -823,11 +825,13 @@
                                 </div>
                                 <ul class="phone-country-list" id="phoneCountryList"></ul>
                             </div>
+                            <!-- Hidden select populated from countries.js -->
                             <select id="countryCode" style="display: none;">
                                 <!-- Populated dynamically -->
                             </select>
                         </div>
-                        <input type="tel" id="contactNumber" placeholder="555-000-000" required>
+                        <!-- Actual phone number input -->
+                        <input type="tel" id="contactNumber" placeholder="9XXXXXXXXX" required>
                     </div>
                 </div>
                 <div class="form-group">
@@ -1012,7 +1016,7 @@
 
             function initPhoneCountryDropdown() {
                 const selectEl = document.getElementById('countryCode');
-                const trigger = document.getElementById('phoneCountryTrigger');
+                const trigger = document.getElementById('dropdown-phone-button');
                 const panel = document.getElementById('phoneCountryPanel');
                 const list = document.getElementById('phoneCountryList');
                 const searchInput = document.getElementById('phoneCountrySearch');

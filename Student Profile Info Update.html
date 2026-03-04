@@ -491,6 +491,55 @@
         .content__item input[type="file"] {
             display: none;
         }
+
+        /* Phone Input Component Styles */
+        .phone-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background-color: white;
+            transition: 0.2s;
+            overflow: hidden;
+        }
+
+        .phone-input-wrapper:focus-within {
+            border-color: var(--active-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .phone-input-prefix {
+            display: flex;
+            align-items: center;
+            height: 100%;
+            border-right: 1px solid #e5e7eb;
+            background: transparent;
+            padding: 0 5px;
+        }
+
+        .phone-input-prefix select {
+            appearance: none;
+            background: transparent;
+            border: none;
+            color: var(--text-gray);
+            font-size: 0.95rem;
+            cursor: pointer;
+            outline: none;
+            padding: 8px;
+            /* Remove default padding */
+        }
+
+        .phone-input-wrapper input {
+            flex: 1;
+            padding: 10px 12px;
+            border: none;
+            background: transparent;
+            font-size: 0.95rem;
+            color: var(--text-dark);
+            outline: none;
+        }
     </style>
 </head>
 
@@ -588,7 +637,14 @@
             <div class="grid-row">
                 <div class="form-group">
                     <label class="form-label">Contact Number <span style="color: #ef4444;">*</span></label>
-                    <input type="tel" class="form-input" id="contactNumber" required>
+                    <div class="phone-input-wrapper">
+                        <div class="phone-input-prefix">
+                            <select id="countryCode">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        <input type="tel" id="contactNumber" placeholder="555-000-000" required>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Email <span style="color: #ef4444;">*</span></label>
@@ -640,9 +696,13 @@
     <!-- Import our Simple Database -->
     <script src="js/admin.js"></script>
     <script src="js/db.js"></script>
+    <script src="js/countries.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Populate country dropdown
+            populateCountryDropdown('countryCode', '+63');
+
             // 1. Initialize DB and get data
             window.StudentDB.init();
 
@@ -716,7 +776,22 @@
             document.getElementById('studentId').value = currentStudent.id;
             document.getElementById('fullName').value = currentStudent.fullName;
             document.getElementById('birthdate').value = currentStudent.birthdate;
-            document.getElementById('contactNumber').value = currentStudent.contactNumber;
+
+            // Set contact number by splitting country code and number if possible
+            const contactContent = currentStudent.contactNumber || '';
+            const spaceIndex = contactContent.indexOf(' ');
+            if (spaceIndex !== -1) {
+                // Try setting it, but fallback if dial code does not exist exactly
+                document.getElementById('countryCode').value = contactContent.substring(0, spaceIndex);
+                if (!document.getElementById('countryCode').value) {
+                    // Reset to default visually
+                    document.getElementById('countryCode').selectedIndex = 0;
+                }
+                document.getElementById('contactNumber').value = contactContent.substring(spaceIndex + 1);
+            } else {
+                document.getElementById('contactNumber').value = contactContent;
+            }
+
             document.getElementById('email').value = currentStudent.email;
             document.getElementById('address').value = currentStudent.address;
             document.getElementById('program').value = currentStudent.program;
@@ -780,7 +855,7 @@
                 const currentData = {
                     fullName: document.getElementById('fullName').value,
                     birthdate: document.getElementById('birthdate').value,
-                    contactNumber: document.getElementById('contactNumber').value,
+                    contactNumber: document.getElementById('countryCode').value + ' ' + document.getElementById('contactNumber').value,
                     email: document.getElementById('email').value,
                     address: document.getElementById('address').value,
                     program: document.getElementById('program').value,
@@ -968,7 +1043,7 @@
                 const updatedData = {
                     fullName: document.getElementById('fullName').value,
                     birthdate: document.getElementById('birthdate').value,
-                    contactNumber: document.getElementById('contactNumber').value,
+                    contactNumber: document.getElementById('countryCode').value + ' ' + document.getElementById('contactNumber').value,
                     email: document.getElementById('email').value,
                     address: document.getElementById('address').value,
                     program: document.getElementById('program').value,

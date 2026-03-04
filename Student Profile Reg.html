@@ -555,6 +555,55 @@
             align-items: flex-start;
             flex-wrap: wrap;
         }
+
+        /* Phone Input Component Styles */
+        .phone-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background-color: white;
+            transition: 0.2s;
+            overflow: hidden;
+        }
+
+        .phone-input-wrapper:focus-within {
+            border-color: var(--active-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .phone-input-prefix {
+            display: flex;
+            align-items: center;
+            height: 100%;
+            border-right: 1px solid #e5e7eb;
+            background: transparent;
+            padding: 0 5px;
+        }
+
+        .phone-input-prefix select {
+            appearance: none;
+            background: transparent;
+            border: none;
+            color: var(--text-gray);
+            font-size: 0.95rem;
+            cursor: pointer;
+            outline: none;
+            padding: 8px;
+            /* Remove default padding */
+        }
+
+        .phone-input-wrapper input {
+            flex: 1;
+            padding: 10px 12px;
+            border: none;
+            background: transparent;
+            font-size: 0.95rem;
+            color: var(--text-dark);
+            outline: none;
+        }
     </style>
 </head>
 
@@ -662,7 +711,14 @@
             <div class="grid-row">
                 <div class="form-group">
                     <label class="form-label">Contact Number <span style="color: #ef4444;">*</span></label>
-                    <input type="tel" class="form-input" id="contactNumber" required>
+                    <div class="phone-input-wrapper">
+                        <div class="phone-input-prefix">
+                            <select id="countryCode">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        <input type="tel" id="contactNumber" placeholder="555-000-000" required>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Email <span style="color: #ef4444;">*</span></label>
@@ -765,9 +821,13 @@
     <!-- Import our Simple Database -->
     <script src="js/admin.js"></script>
     <script src="js/db.js"></script>
+    <script src="js/countries.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Populate country dropdown
+            populateCountryDropdown('countryCode', '+63'); // Default to Philippines (+63) for prototype
+
             // 1. Initialize DB
             window.StudentDB.init();
 
@@ -1097,7 +1157,7 @@
                 const newStudentData = {
                     fullName: document.getElementById('fullName').value,
                     birthdate: document.getElementById('birthdate').value,
-                    contactNumber: document.getElementById('contactNumber').value,
+                    contactNumber: document.getElementById('countryCode').value + ' ' + document.getElementById('contactNumber').value,
                     email: document.getElementById('email').value,
                     address: document.getElementById('address').value,
                     program: document.getElementById('program').value,

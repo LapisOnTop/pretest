@@ -534,9 +534,33 @@
             /* make country selector non-clickable */
         }
 
-        .phone-input-wrapper.error {
+        .phone-input-wrapper.error,
+        .form-input.error,
+        .form-select.error {
             border-color: #ef4444;
             box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+
+        @keyframes shakeError {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-4px);
+            }
+
+            75% {
+                transform: translateX(4px);
+            }
+        }
+
+        .phone-input-wrapper.shake,
+        .form-input.shake,
+        .form-select.shake {
+            animation: shakeError 0.4s ease-in-out;
         }
 
         @keyframes shakeError {
@@ -904,6 +928,61 @@
 
             setupPhoneInput('contactNumber');
 
+            // Common-Sense Field Validation
+            function validateField(inputEl, type) {
+                if (!inputEl) return true;
+                let isValid = true;
+                const val = inputEl.value.trim();
+
+                if (!val) {
+                    isValid = false;
+                } else {
+                    if (type === 'name') {
+                        // At least 2 words, no numbers
+                        isValid = val.split(/\s+/).length >= 2 && !/\d/.test(val);
+                    } else if (type === 'email') {
+                        // Basic email check
+                        isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+                    } else if (type === 'date') {
+                        // Realistic date check
+                        const d = new Date(val);
+                        const minDate = new Date('1900-01-01');
+                        const maxDate = new Date();
+                        isValid = !isNaN(d.getTime()) && d >= minDate && d <= maxDate;
+                    }
+                }
+
+                if (!isValid) {
+                    inputEl.classList.add('error');
+                    inputEl.classList.remove('shake');
+                    void inputEl.offsetWidth; // trigger reflow
+                    inputEl.classList.add('shake');
+                } else {
+                    inputEl.classList.remove('error', 'shake');
+                }
+                return isValid;
+            }
+
+            function setupFieldValidation() {
+                const fields = [
+                    { id: 'fullName', type: 'name' },
+                    { id: 'birthdate', type: 'date' },
+                    { id: 'email', type: 'email' },
+                    { id: 'address', type: 'address' }
+                ];
+                fields.forEach(f => {
+                    const el = document.getElementById(f.id);
+                    if (el) {
+                        el.addEventListener('blur', () => validateField(el, f.type));
+                        el.addEventListener('input', () => {
+                            if (el.classList.contains('error')) el.classList.remove('error', 'shake');
+                        });
+                    }
+                });
+            }
+
+            setupFieldValidation();
+
             // 1. Initialize DB and get data
             window.StudentDB.init();
 
@@ -1222,6 +1301,26 @@
             // 3. Handle Form Submit
             document.getElementById('updateForm').addEventListener('submit', (e) => {
                 e.preventDefault();
+
+                // Validate all fields first
+                let allValid = true;
+                const fields = [
+                    { id: 'fullName', type: 'name' },
+                    { id: 'birthdate', type: 'date' },
+                    { id: 'email', type: 'email' },
+                    { id: 'address', type: 'address' }
+                ];
+                fields.forEach(f => {
+                    const el = document.getElementById(f.id);
+                    if (el && !validateField(el, f.type)) {
+                        allValid = false;
+                    }
+                });
+
+                if (!allValid) {
+                    showErrorPopup("Invalid Input", "Please correct the highlighted fields before submitting.");
+                    return;
+                }
 
                 const storedContactNumber = buildStoredContactNumber('contactNumber');
                 if (!storedContactNumber) return;

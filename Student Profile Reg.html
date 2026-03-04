@@ -591,17 +591,11 @@
             gap: 6px;
             padding: 6px 10px;
             border-radius: 999px;
-            cursor: pointer;
+            cursor: default;
             background: #f9fafb;
             border: 1px solid #e5e7eb;
-            transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
             white-space: nowrap;
-        }
-
-        .phone-country-trigger:hover {
-            background: #eff6ff;
-            border-color: #bfdbfe;
-            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.12);
+            pointer-events: none; /* make country selector non-clickable */
         }
 
         .phone-country-code {

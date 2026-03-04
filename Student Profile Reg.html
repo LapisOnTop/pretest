@@ -598,6 +598,31 @@
             /* make country selector non-clickable */
         }
 
+        .phone-input-wrapper.error {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+
+        @keyframes shakeError {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-4px);
+            }
+
+            75% {
+                transform: translateX(4px);
+            }
+        }
+
+        .phone-input-wrapper.shake {
+            animation: shakeError 0.4s ease-in-out;
+        }
+
         .phone-country-code {
             font-size: 0.8rem;
             font-weight: 600;
@@ -953,8 +978,20 @@
                 };
 
                 const onInput = () => {
-                    let cleaned = digitsOnly(numberEl.value);
+                    let rawInput = numberEl.value;
+                    let cleaned = digitsOnly(rawInput);
                     cleaned = rules.normalizeNational(cleaned);
+
+                    const wrapper = numberEl.closest('.phone-input-wrapper');
+
+                    // Visual error if it starts with an invalid digit
+                    if (rawInput.length > 0 && !rawInput.startsWith('0') && !rawInput.startsWith('9') && !rawInput.startsWith('+')) {
+                        wrapper.classList.add('error', 'shake');
+                        setTimeout(() => wrapper.classList.remove('shake'), 400);
+                    } else {
+                        wrapper.classList.remove('error');
+                    }
+
                     cleaned = cleaned.slice(0, rules.max);
                     numberEl.value = cleaned;
                 };
@@ -974,6 +1011,11 @@
                 national = rules.normalizeNational(national);
 
                 if (national.length < rules.min || national.length > rules.max || !national.startsWith('9')) {
+                    const wrapper = numberEl.closest('.phone-input-wrapper');
+                    if (wrapper) {
+                        wrapper.classList.add('error', 'shake');
+                        setTimeout(() => wrapper.classList.remove('shake'), 400);
+                    }
                     if (!opts.silent) {
                         showErrorPopup(
                             'Invalid Contact Number',

@@ -804,27 +804,11 @@
                     <label class="form-label">Contact Number <span style="color: #ef4444;">*</span></label>
                     <div class="phone-input-wrapper">
                         <div class="phone-input-prefix">
-                            <!-- Flowbite-style country button -->
-                            <button id="dropdown-phone-button" type="button" class="phone-country-trigger">
-                                <span class="phone-country-code" id="phoneCountryLabel">PH</span>
-                                <span class="phone-country-dial" id="phoneDialLabel">+63</span>
-                                <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem; color: #9ca3af;"></i>
-                            </button>
-                            <!-- Country dropdown with search -->
-                            <div class="phone-country-panel" id="phoneCountryPanel">
-                                <div class="phone-country-search">
-                                    <i class="fa-solid fa-magnifying-glass"
-                                        style="font-size: 0.7rem; color: #9ca3af;"></i>
-                                    <input type="text" id="phoneCountrySearch" placeholder="Search country or code">
-                                </div>
-                                <ul class="phone-country-list" id="phoneCountryList"></ul>
+                            <div class="phone-country-trigger">
+                                <span class="phone-country-code">PH</span>
+                                <span class="phone-country-dial">+63</span>
                             </div>
-                            <!-- Hidden select populated from countries.js -->
-                            <select id="countryCode" style="display: none;">
-                                <!-- Populated dynamically -->
-                            </select>
                         </div>
-                        <!-- Actual phone number input -->
                         <input type="tel" id="contactNumber" placeholder="9XXXXXXXXX" required>
                     </div>
                 </div>
@@ -929,194 +913,78 @@
     <!-- Import our Simple Database -->
     <script src="js/admin.js"></script>
     <script src="js/db.js"></script>
-    <script src="js/countries.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Populate country dropdown
-            populateCountryDropdown('countryCode', '+63'); // Default to Philippines (+63) for prototype
-
-            // Phone input behavior:
-            // - Digits only
-            // - PH (+63): user types 9xxxxxxxxx (10 digits). If they type 09xxxxxxxxx, we auto-drop the leading 0.
-            // - Other countries: allow up to 15 digits (E.164 max), no formatting chars saved.
-            function normalizeDialCode(raw) {
-                // Some entries contain hyphens/commas (e.g. +1-268, +1-809, 1-829,...)
-                // For our stored value we keep the original select value, but for validation we need digits.
-                return String(raw || '').trim();
-            }
+            const DIAL_CODE = '+63';
 
             function digitsOnly(s) {
                 return String(s || '').replace(/\D/g, '');
             }
 
-            function getPhoneRulesForDialCode(dialCode) {
-                const dc = normalizeDialCode(dialCode);
-                if (dc === '+63') {
-                    return {
-                        min: 10,
-                        max: 10,
-                        placeholder: '9XXXXXXXXX',
-                        // Remove leading trunk "0" if user typed local PH format (09xxxxxxxxx)
-                        normalizeNational: (nationalDigits) => {
-                            if (nationalDigits.startsWith('0')) return nationalDigits.slice(1);
-                            return nationalDigits;
-                        }
-                    };
-                }
-                // Generic international rule (E.164 national significant number length varies; keep sane bounds)
+            function getPhoneRules() {
                 return {
-                    min: 6,
-                    max: 15,
-                    placeholder: 'Phone number',
-                    normalizeNational: (nationalDigits) => nationalDigits
+                    min: 10,
+                    max: 10,
+                    placeholder: '9XXXXXXXXX',
+                    normalizeNational: (nationalDigits) => {
+                        if (nationalDigits.startsWith('0')) return nationalDigits.slice(1);
+                        return nationalDigits;
+                    }
                 };
             }
 
-            function setupPhoneInput(countrySelectId, numberInputId) {
-                const countryEl = document.getElementById(countrySelectId);
+            function setupPhoneInput(numberInputId) {
                 const numberEl = document.getElementById(numberInputId);
-                if (!countryEl || !numberEl) return;
+                if (!numberEl) return;
+
+                const rules = getPhoneRules();
 
                 numberEl.setAttribute('inputmode', 'numeric');
                 numberEl.setAttribute('autocomplete', 'tel');
                 numberEl.setAttribute('pattern', '[0-9]*');
 
                 const applyRules = () => {
-                    const rules = getPhoneRulesForDialCode(countryEl.value);
                     numberEl.placeholder = rules.placeholder;
-                    // Use maxlength as a hard UI cap; PH becomes 10, others 15
                     numberEl.maxLength = rules.max;
-
-                    // If current value exceeds new max, trim it (digits only)
                     const cleaned = digitsOnly(numberEl.value).slice(0, rules.max);
                     numberEl.value = cleaned;
                 };
 
                 const onInput = () => {
-                    const rules = getPhoneRulesForDialCode(countryEl.value);
                     let cleaned = digitsOnly(numberEl.value);
                     cleaned = rules.normalizeNational(cleaned);
                     cleaned = cleaned.slice(0, rules.max);
                     numberEl.value = cleaned;
                 };
 
-                countryEl.addEventListener('change', applyRules);
                 numberEl.addEventListener('input', onInput);
                 numberEl.addEventListener('paste', () => setTimeout(onInput, 0));
 
                 applyRules();
             }
 
-            function initPhoneCountryDropdown() {
-                const selectEl = document.getElementById('countryCode');
-                const trigger = document.getElementById('dropdown-phone-button');
-                const panel = document.getElementById('phoneCountryPanel');
-                const list = document.getElementById('phoneCountryList');
-                const searchInput = document.getElementById('phoneCountrySearch');
-                const labelEl = document.getElementById('phoneCountryLabel');
-                const dialEl = document.getElementById('phoneDialLabel');
-
-                if (!selectEl || !trigger || !panel || !list || !searchInput || !labelEl || !dialEl) return;
-
-                const allOptions = Array.from(selectEl.options).map(opt => ({
-                    value: opt.value,
-                    code: opt.textContent,
-                    title: opt.title || opt.textContent
-                }));
-
-                function updateTrigger() {
-                    const selected =
-                        allOptions.find(o => o.value === selectEl.value) || allOptions[0];
-                    if (!selected) return;
-                    labelEl.textContent = selected.code;
-                    dialEl.textContent = selected.value;
-                }
-
-                function renderList(filterText = '') {
-                    const term = filterText.trim().toLowerCase();
-                    list.innerHTML = '';
-                    allOptions
-                        .filter(o => {
-                            if (!term) return true;
-                            return (
-                                o.code.toLowerCase().includes(term) ||
-                                o.value.toLowerCase().includes(term) ||
-                                o.title.toLowerCase().includes(term)
-                            );
-                        })
-                        .forEach(o => {
-                            const li = document.createElement('li');
-                            li.className =
-                                'phone-country-item' +
-                                (o.value === selectEl.value ? ' active' : '');
-                            li.dataset.value = o.value;
-                            li.innerHTML = `<span>${o.title}</span><span>${o.value}</span>`;
-                            li.addEventListener('click', () => {
-                                selectEl.value = o.value;
-                                updateTrigger();
-                                renderList(searchInput.value);
-                                panel.classList.remove('show');
-                                selectEl.dispatchEvent(new Event('change'));
-                            });
-                            list.appendChild(li);
-                        });
-                }
-
-                trigger.addEventListener('click', e => {
-                    e.stopPropagation();
-                    panel.classList.toggle('show');
-                    if (panel.classList.contains('show')) {
-                        searchInput.value = '';
-                        renderList('');
-                        searchInput.focus();
-                    }
-                });
-
-                document.addEventListener('click', () => {
-                    panel.classList.remove('show');
-                });
-
-                panel.addEventListener('click', e => e.stopPropagation());
-                searchInput.addEventListener('input', () =>
-                    renderList(searchInput.value)
-                );
-
-                updateTrigger();
-                renderList('');
-            }
-
-            function buildStoredContactNumber(countrySelectId, numberInputId, opts = {}) {
-                const countryEl = document.getElementById(countrySelectId);
+            function buildStoredContactNumber(numberInputId, opts = {}) {
                 const numberEl = document.getElementById(numberInputId);
-                if (!countryEl || !numberEl) return '';
+                if (!numberEl) return '';
 
-                const dialCode = normalizeDialCode(countryEl.value);
-                const rules = getPhoneRulesForDialCode(dialCode);
+                const rules = getPhoneRules();
                 let national = digitsOnly(numberEl.value);
                 national = rules.normalizeNational(national);
 
                 if (national.length < rules.min || national.length > rules.max) {
                     if (!opts.silent) {
-                        if (dialCode === '+63') {
-                            showErrorPopup(
-                                'Invalid Contact Number',
-                                'For Philippines (+63), enter 10 digits starting with 9. Example: 9XXXXXXXXX (do not type the starting 0).'
-                            );
-                        } else {
-                            showErrorPopup(
-                                'Invalid Contact Number',
-                                `Please enter a valid phone number (${rules.min}-${rules.max} digits).`
-                            );
-                        }
+                        showErrorPopup(
+                            'Invalid Contact Number',
+                            'For Philippines (+63), enter 10 digits starting with 9. Example: 9XXXXXXXXX (do not type the starting 0).'
+                        );
                     }
                     return null;
                 }
-                return `${dialCode} ${national}`;
+                return `${DIAL_CODE} ${national}`;
             }
 
-            setupPhoneInput('countryCode', 'contactNumber');
-            initPhoneCountryDropdown();
+            setupPhoneInput('contactNumber');
 
             // 1. Initialize DB
             window.StudentDB.init();
@@ -1395,7 +1263,7 @@
             document.getElementById('registrationForm').addEventListener('submit', (e) => {
                 e.preventDefault();
 
-                const storedContactNumber = buildStoredContactNumber('countryCode', 'contactNumber');
+                const storedContactNumber = buildStoredContactNumber('contactNumber');
                 if (!storedContactNumber) return;
 
                 // Validation Checks

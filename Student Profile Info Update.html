@@ -703,6 +703,103 @@
             // Populate country dropdown
             populateCountryDropdown('countryCode', '+63');
 
+            // Phone input behavior:
+            // - Digits only
+            // - PH (+63): user types 9xxxxxxxxx (10 digits). If they type 09xxxxxxxxx, we auto-drop the leading 0.
+            // - Other countries: allow up to 15 digits (E.164 max), no formatting chars saved.
+            function normalizeDialCode(raw) {
+                return String(raw || '').trim();
+            }
+
+            function digitsOnly(s) {
+                return String(s || '').replace(/\D/g, '');
+            }
+
+            function getPhoneRulesForDialCode(dialCode) {
+                const dc = normalizeDialCode(dialCode);
+                if (dc === '+63') {
+                    return {
+                        min: 10,
+                        max: 10,
+                        placeholder: '9XXXXXXXXX',
+                        normalizeNational: (nationalDigits) => {
+                            if (nationalDigits.startsWith('0')) return nationalDigits.slice(1);
+                            return nationalDigits;
+                        }
+                    };
+                }
+                return {
+                    min: 6,
+                    max: 15,
+                    placeholder: 'Phone number',
+                    normalizeNational: (nationalDigits) => nationalDigits
+                };
+            }
+
+            function setupPhoneInput(countrySelectId, numberInputId) {
+                const countryEl = document.getElementById(countrySelectId);
+                const numberEl = document.getElementById(numberInputId);
+                if (!countryEl || !numberEl) return;
+
+                numberEl.setAttribute('inputmode', 'numeric');
+                numberEl.setAttribute('autocomplete', 'tel');
+                numberEl.setAttribute('pattern', '[0-9]*');
+
+                const applyRules = () => {
+                    const rules = getPhoneRulesForDialCode(countryEl.value);
+                    numberEl.placeholder = rules.placeholder;
+                    numberEl.maxLength = rules.max;
+
+                    const cleaned = digitsOnly(numberEl.value).slice(0, rules.max);
+                    numberEl.value = cleaned;
+                };
+
+                const onInput = () => {
+                    const rules = getPhoneRulesForDialCode(countryEl.value);
+                    let cleaned = digitsOnly(numberEl.value);
+                    cleaned = rules.normalizeNational(cleaned);
+                    cleaned = cleaned.slice(0, rules.max);
+                    numberEl.value = cleaned;
+                };
+
+                countryEl.addEventListener('change', applyRules);
+                numberEl.addEventListener('input', onInput);
+                numberEl.addEventListener('paste', () => setTimeout(onInput, 0));
+
+                applyRules();
+            }
+
+            function buildStoredContactNumber(countrySelectId, numberInputId, opts = {}) {
+                const countryEl = document.getElementById(countrySelectId);
+                const numberEl = document.getElementById(numberInputId);
+                if (!countryEl || !numberEl) return '';
+
+                const dialCode = normalizeDialCode(countryEl.value);
+                const rules = getPhoneRulesForDialCode(dialCode);
+                let national = digitsOnly(numberEl.value);
+                national = rules.normalizeNational(national);
+
+                if (national.length < rules.min || national.length > rules.max) {
+                    if (!opts.silent) {
+                        if (dialCode === '+63') {
+                            showErrorPopup(
+                                'Invalid Contact Number',
+                                'For Philippines (+63), enter 10 digits starting with 9. Example: 9XXXXXXXXX (do not type the starting 0).'
+                            );
+                        } else {
+                            showErrorPopup(
+                                'Invalid Contact Number',
+                                `Please enter a valid phone number (${rules.min}-${rules.max} digits).`
+                            );
+                        }
+                    }
+                    return null;
+                }
+                return `${dialCode} ${national}`;
+            }
+
+            setupPhoneInput('countryCode', 'contactNumber');
+
             // 1. Initialize DB and get data
             window.StudentDB.init();
 
@@ -787,9 +884,18 @@
                     // Reset to default visually
                     document.getElementById('countryCode').selectedIndex = 0;
                 }
-                document.getElementById('contactNumber').value = contactContent.substring(spaceIndex + 1);
+                // Strip non-digits and also apply PH normalization (drop leading 0)
+                const dc = document.getElementById('countryCode').value;
+                const rules = getPhoneRulesForDialCode(dc);
+                let existingNational = digitsOnly(contactContent.substring(spaceIndex + 1));
+                existingNational = rules.normalizeNational(existingNational);
+                document.getElementById('contactNumber').value = existingNational.slice(0, rules.max);
             } else {
-                document.getElementById('contactNumber').value = contactContent;
+                const dc = document.getElementById('countryCode').value;
+                const rules = getPhoneRulesForDialCode(dc);
+                let existingNational = digitsOnly(contactContent);
+                existingNational = rules.normalizeNational(existingNational);
+                document.getElementById('contactNumber').value = existingNational.slice(0, rules.max);
             }
 
             document.getElementById('email').value = currentStudent.email;
@@ -852,10 +958,18 @@
 
             // Function to check for changes
             function checkChanges() {
+                const storedContactNumber = buildStoredContactNumber('countryCode', 'contactNumber', { silent: true });
+                if (!storedContactNumber) {
+                    // Keep save disabled when phone is invalid
+                    saveBtn.disabled = true;
+                    saveBtn.style.opacity = '0.5';
+                    saveBtn.style.cursor = 'not-allowed';
+                    return;
+                }
                 const currentData = {
                     fullName: document.getElementById('fullName').value,
                     birthdate: document.getElementById('birthdate').value,
-                    contactNumber: document.getElementById('countryCode').value + ' ' + document.getElementById('contactNumber').value,
+                    contactNumber: storedContactNumber,
                     email: document.getElementById('email').value,
                     address: document.getElementById('address').value,
                     program: document.getElementById('program').value,
@@ -1020,6 +1134,9 @@
             document.getElementById('updateForm').addEventListener('submit', (e) => {
                 e.preventDefault();
 
+                const storedContactNumber = buildStoredContactNumber('countryCode', 'contactNumber');
+                if (!storedContactNumber) return;
+
                 // Basic date validation on update
                 const birthInput = document.getElementById('birthdate');
                 const admissionInput = document.getElementById('admissionDate');
@@ -1043,7 +1160,7 @@
                 const updatedData = {
                     fullName: document.getElementById('fullName').value,
                     birthdate: document.getElementById('birthdate').value,
-                    contactNumber: document.getElementById('countryCode').value + ' ' + document.getElementById('contactNumber').value,
+                    contactNumber: storedContactNumber,
                     email: document.getElementById('email').value,
                     address: document.getElementById('address').value,
                     program: document.getElementById('program').value,
